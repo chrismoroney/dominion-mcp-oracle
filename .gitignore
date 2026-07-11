@@ -1,2 +1,83 @@
+# ==========================================
+# 1. SECURITY & ENVIRONMENT VARIABLES (CRITICAL)
+# ==========================================
 .env
-DEVELOPER_README.md
+.env.*
+*.env
+auth.json
+
+# ==========================================
+# 2. VIRTUAL ENVIRONMENTS & DEPENDENCIES
+# ==========================================
+venv/
+.venv/
+env/
+ENV/
+pyvenv.cfg
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ==========================================
+# 3. PYTHON CACHE & COMPILED FILES
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+
+# ==========================================
+# 4. OS SPECIFIC JUNK
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+
+# ==========================================
+# 5. LOCAL TEST DATA / BACKUPS (OPTIONAL)
+# ==========================================
+# If you want to keep your raw SQL logs local only:
+# *.sql# ==========================================
+# 1. SECURITY & ENVIRONMENT VARIABLES (CRITICAL)
+# ==========================================
+.env
+.env.*
+*.env
+auth.json
+
+# ==========================================
+# 2. VIRTUAL ENVIRONMENTS & DEPENDENCIES
+# ==========================================
+venv/
+.venv/
+env/
+ENV/
+pyvenv.cfg
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ==========================================
+# 3. PYTHON CACHE & COMPILED FILES
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+
+# ==========================================
+# 4. OS SPECIFIC JUNK
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+
+# ==========================================
+# 5. LOCAL TEST DATA / BACKUPS (OPTIONAL)
+# ==========================================
+# If you want to keep your raw SQL logs local only:
+# *.sql
