@@ -110,33 +110,36 @@ def start_smart_game(player_names: list[str], expansion_set: str = "Base", notes
         if conn: conn.close()
 
 @mcp.tool()
-def log_game_event(game_id: str, player_identifier: str, turn_number: int, action_type: str, card_id: str, quantity: int) -> str:
-    """Logs a specific action to the database."""
+def log_game_event(game_id: str, player_identifier: str, turn_number: int, action_type: str, card_identifier: str, quantity: int) -> str:
+    """Logs a specific action to the database using the card resolver."""
     conn = get_db_connection()
     cur = conn.cursor()
     actual_player_id = resolve_player_id(cur, player_identifier)
+    actual_card_id = resolve_card_id(cur, card_identifier) # Added resolver
     try:
         cur.execute("INSERT INTO gameevents (game_id, player_id, turn_number, action_type, card_id, quantity) VALUES (%s, %s, %s, %s, %s, %s);", 
-                    (game_id, actual_player_id, turn_number, action_type, card_id, quantity))
+                    (game_id, actual_player_id, turn_number, action_type, actual_card_id, quantity))
         conn.commit()
         return f"Successfully logged action for {actual_player_id}."
-    except Exception as e:
-        conn.rollback()
-        return f"Failed to log event: {e}"
     finally:
         cur.close()
         conn.close()
 
 @mcp.tool()
 def set_kingdom_cards(game_id: str, kingdom_cards: list[str]) -> str:
-    """Logs the 10 Kingdom cards used in this game."""
+    """Logs the 10 Kingdom cards using strict card_id validation."""
     try:
         conn = get_db_connection()
         with conn.cursor() as cur:
-            for card_id in kingdom_cards:
-                cur.execute("INSERT INTO gamekingdomcards (game_id, card_id) VALUES (%s, %s);", (game_id, card_id))
+            for card_name in kingdom_cards:
+                # This will now throw an error if the card isn't registered
+                valid_id = resolve_card_id(cur, card_name)
+                cur.execute("""
+                    INSERT INTO gamekingdomcards (game_id, card_id) 
+                    VALUES (%s, %s);
+                """, (game_id, valid_id))
         conn.commit()
-        return f"Successfully logged kingdom cards for {game_id}."
+        return f"Successfully logged {len(kingdom_cards)} kingdom cards for {game_id}."
     except Exception as e:
         return f"Error: {e}"
     finally:
@@ -144,20 +147,19 @@ def set_kingdom_cards(game_id: str, kingdom_cards: list[str]) -> str:
 
 @mcp.tool()
 def log_starting_hand(game_id: str, player_identifier: str, turn_number: int, hand: dict) -> str:
-    """Logs the exact cards a player started their turn with."""
+    """Logs the hand using the card resolver for every card in the dict."""
     try:
         conn = get_db_connection()
         with conn.cursor() as cur:
             actual_player_id = resolve_player_id(cur, player_identifier)
-            for card_id, quantity in hand.items():
+            for card_name, quantity in hand.items():
+                actual_card_id = resolve_card_id(cur, card_name) # Added resolver
                 cur.execute("INSERT INTO turnstartinghands (game_id, player_id, turn_number, card_id, quantity) VALUES (%s, %s, %s, %s, %s);", 
-                            (game_id, actual_player_id, turn_number, card_id, quantity))
+                            (game_id, actual_player_id, turn_number, actual_card_id, quantity))
         conn.commit()
         return f"Successfully logged starting hand for {actual_player_id}."
-    except Exception as e:
-        return f"Error: {e}"
     finally:
-        if conn: conn.close()
+        conn.close()
 
 @mcp.tool()
 def register_cards(card_names: list[str], expansion_set: str) -> str:
@@ -174,5 +176,20 @@ def register_cards(card_names: list[str], expansion_set: str) -> str:
     finally:
         if conn: conn.close()
 
+def resolve_card_id(cur, card_identifier: str) -> str:
+    """Strictly resolves to a card_id existing in the cards table."""
+    cur.execute("""
+        SELECT card_id FROM cards 
+        WHERE LOWER(card_id) = LOWER(%s) OR LOWER(name) = LOWER(%s) 
+        LIMIT 1;
+    """, (card_identifier, card_identifier))
+    row = cur.fetchone()
+    
+    if not row:
+        # Instead of returning the raw identifier, raise an error 
+        # so the MCP tool halts before corrupting the database.
+        raise ValueError(f"Card '{card_identifier}' is not registered in the database.")
+    
+    return row[0]
 if __name__ == "__main__":
     mcp.run(transport="stdio")
